@@ -57,6 +57,19 @@ const handler = async (request: Request): Promise<Response> => {
         });
     }
 
+    // Validate email
+    if (!isValidEmail(email)) {
+        return new Response(JSON.stringify({ error: 'Invalid email address.' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+
+    // Escape user-supplied content
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safeMessage = escapeHtml(message);
+
     const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html dir="ltr" lang="en">
   <head>
@@ -93,25 +106,25 @@ const handler = async (request: Request): Promise<Response> => {
                               From:
                             </p>
                             <p style="font-size:16px;margin-bottom:16px;line-height:24px;color:hsl(210, 40%, 98%);margin-top:16px">
-                              <!-- EMAIL -->${email}<!-- /EMAIL -->
+                              <!-- EMAIL -->${safeEmail}<!-- /EMAIL -->
                             </p>
                             <p style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:24px;color:hsl(153, 65%, 65%);margin-top:16px">
                               Name:
                             </p>
                             <p style="font-size:16px;margin-bottom:16px;line-height:24px;color:hsl(210, 40%, 98%);margin-top:16px">
-                              <!-- NAME -->${name}<!-- /NAME -->
+                              <!-- NAME -->${safeName}<!-- /NAME -->
                             </p>
                             <p style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:24px;color:hsl(153, 65%, 65%);margin-top:16px">
                               Message:
                             </p>
                             <p style="font-size:16px;line-height:24px;color:hsl(210, 40%, 98%);margin-bottom:16px;margin-top:16px">
-                              <!-- MESSAGE -->${message.replace(/\n/g, '<br>')}<!-- /MESSAGE -->
+                              <!-- MESSAGE -->${safeMessage.replace(/\n/g, '<br>')}<!-- /MESSAGE -->
                             </p>
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <a href="mailto:${email}" style="display:inline-block;padding:12px 20px;border-radius:4px;font-weight:bold;text-decoration:none;color:hsl(0, 0%, 30%);background:linear-gradient(to right, hsl(153, 65%, 65%), hsl(262, 61%, 74%));text-align:center;box-sizing:border-box;margin-bottom:16px;width:100%">Reply to this message</a>
+                    <a href="mailto:${safeEmail}" style="display:inline-block;padding:12px 20px;border-radius:4px;font-weight:bold;text-decoration:none;color:hsl(0, 0%, 30%);background:linear-gradient(to right, hsl(153, 65%, 65%), hsl(262, 61%, 74%));text-align:center;box-sizing:border-box;margin-bottom:16px;width:100%">Reply to this message</a>
                     <p style="font-size:14px;margin-top:32px;line-height:24px;color:hsl(215, 20.2%, 65.1%);margin-bottom:16px">
                       This email was sent to you because you received a submission from the contact form on your website.
                     </p>
@@ -155,7 +168,7 @@ const handler = async (request: Request): Promise<Response> => {
             to: ['mail@uweschwarz.eu'],
             subject: 'Contact Form: uweschwarz.eu',
             html,
-            reply_to: `${name} <${email}>`,
+            reply_to: `${safeName} <${safeEmail}>`,
         })
     });
 
@@ -171,3 +184,22 @@ const handler = async (request: Request): Promise<Response> => {
 };
 
 serve(handler);
+
+// Utility: Escape HTML special characters
+function escapeHtml(str: string): string {
+    return str.replace(/[&<>"']/g, function (tag) {
+        const chars: Record<string, string> = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        };
+        return chars[tag] || tag;
+    });
+}
+
+// Utility: Simple email validation
+function isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
