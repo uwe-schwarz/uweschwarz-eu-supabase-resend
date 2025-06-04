@@ -1,7 +1,10 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { corsHeaders } from '../_shared/cors.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 const handler = async (request: Request): Promise<Response> => {
+    // Get dynamic CORS headers based on request origin
+    const corsHeaders = getCorsHeaders(request);
+    
     // CORS
     if (request.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders })
